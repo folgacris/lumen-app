@@ -457,7 +457,7 @@ function render(data) {
 async function appelerAction(action) {
   document.querySelectorAll("button").forEach(b => b.disabled = true);
   try {
-    const res = await fetch(`${FN_URL}?action=${action}`);
+    const res = await fetch(`${FN_URL}?action=${action}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`Serveur : ${res.status} ${res.statusText}`);
     const data = await res.json();
     render(data);
@@ -476,7 +476,7 @@ document.querySelectorAll("button[data-action]").forEach(btn => {
 async function envoyerCommande(texte) {
   document.querySelectorAll("button").forEach(b => b.disabled = true);
   try {
-    const res = await fetch(`${FN_URL}?texte=${encodeURIComponent(texte)}`);
+    const res = await fetch(`${FN_URL}?texte=${encodeURIComponent(texte)}`, { cache: "no-store" });
     if (!res.ok) throw new Error(`Serveur : ${res.status} ${res.statusText}`);
     const data = await res.json();
     render(data);
