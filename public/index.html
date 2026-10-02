@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Lumen</title>
+
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0A0E14" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0F0B06;
+    --panel: #1A140B;
+    --panel-border: #3A2D16;
+    --accent: #D4AF5A;
+    --accent-bright: #F5D182;
+    --accent-dim: #6B551F;
+    --warn: #E8A33D;
+    --danger: #C4644A;
+    --text: #F1E7D2;
+    --muted: #8A7B5C;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212, 175, 90, 0.10), transparent 70%),
+      var(--bg);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overscroll-behavior-y: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  .screen {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 24px) 20px calc(env(safe-area-inset-bottom, 24px) + 20px);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .halo-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0 2px;
+  }
+
+  .halo {
+    width: 200px;
+    height: 200px;
+    max-width: 62vw;
+    max-height: 62vw;
+  }
+
+  .halo-outer {
+    transform-origin: 100px 100px;
+    animation: spin-slow 40s linear infinite;
+  }
+
+  .halo-runering {
+    transform-origin: 100px 100px;
+    animation: spin-slow-reverse 60s linear infinite;
+  }
+
+  .halo-rays {
+    transform-origin: 100px 100px;
+    animation: spin-slow 90s linear infinite;
+  }
+
+  .halo-mid {
+    transform-origin: 100px 100px;
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes spin-slow-reverse {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 8px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  .niveau-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .xp-track {
+    height: 6px;
+    background: var(--panel-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .xp-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .xp-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .stat .stat-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .stat .stat-name { color: var(--muted); }
+  .stat .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+  }
+
+  .stat-track {
+    height: 5px;
+    background: var(--panel-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .stat-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease, background 0.5s ease;
+  }
+
+  .console {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--accent);
+    min-height: 64px;
+  }
+
+  .console .line {
+    animation: reveal 0.4s ease;
+    margin-bottom: 6px;
+  }
+
+  .console .line.secondary { color: var(--text); }
+
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .command-bar {
+    display: flex;
+    gap: 8px;
+  }
+
+  .command-bar input {
+    flex: 1;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    outline: none;
+  }
+
+  .command-bar input:focus {
+    border-color: var(--accent-dim);
+  }
+
+  .command-bar input::placeholder {
+    color: var(--muted);
+  }
+
+  .command-submit {
+    flex-shrink: 0;
+    padding: 14px 18px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  button {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  }
+
+  button:active { transform: scale(0.97); background: #161C26; }
+
+  button.primary { border-color: var(--accent-dim); color: var(--accent); }
+  button.warn { border-color: #4A3A22; color: var(--warn); }
+
+  button:disabled { opacity: 0.4; }
+
+  footer {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="screen">
+
+  <header>
+    <div class="brand">
+      <h1>Lumen</h1>
+    </div>
+    <div class="niveau-badge" id="niveau-badge">Niv. —</div>
+  </header>
+
+  <div class="halo-wrap">
+    <svg class="halo" viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF3D6" />
+          <stop offset="35%" stop-color="#F5D182" />
+          <stop offset="100%" stop-color="#F5D182" stop-opacity="0" />
+        </radialGradient>
+        <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.2" />
+        </filter>
+      </defs>
+
+      <!-- rayons -->
+      <g class="halo-rays" stroke="#D4AF5A" stroke-width="0.6" opacity="0.55">
+        <!-- generated by JS for even spacing -->
+      </g>
+
+      <!-- anneau externe de runes (tirets) -->
+      <g class="halo-runering" stroke="#D4AF5A" stroke-width="2" opacity="0.85">
+      </g>
+
+      <!-- anneau fin externe -->
+      <circle class="halo-outer" cx="100" cy="100" r="94" fill="none" stroke="#D4AF5A" stroke-width="0.8" opacity="0.5" />
+
+      <!-- anneau principal -->
+      <circle class="halo-mid" cx="100" cy="100" r="72" fill="none" stroke="#D4AF5A" stroke-width="1.4" opacity="0.9" />
+
+      <!-- lueur + cœur -->
+      <circle cx="100" cy="100" r="46" fill="url(#coreGlow)" filter="url(#softBlur)" />
+      <circle cx="100" cy="100" r="20" fill="#FFF3D6" />
+    </svg>
+  </div>
+
+  <div>
+    <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <div class="xp-label" id="xp-label">XP — / 100</div>
+  </div>
+
+  <div class="panel stats-grid" id="stats-grid">
+    <!-- stats injected by JS -->
+  </div>
+
+  <div class="panel console" id="console">
+    <div class="line">Lumen : « Connexion au système... »</div>
+  </div>
+
+  <form class="command-bar" id="command-form">
+    <input
+      type="text"
+      id="command-input"
+      placeholder="Parlez-moi, ex : « je suis épuisé » ou « cherche une recette de risotto »"
+      autocomplete="off"
+    />
+    <button type="submit" class="primary command-submit">Envoyer</button>
+  </form>
+
+  <div class="actions">
+    <button class="primary" data-action="service">Service</button>
+    <button data-action="repos">Repos</button>
+    <button data-action="soiree">Soirée</button>
+    <button class="warn" data-action="valider">Valider une tâche</button>
+  </div>
+
+  <footer>système personnel — hors ligne si non connecté</footer>
+
+</div>
+
+<script>
+const FN_URL = "/.netlify/functions/lumen";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function construireHalo() {
+  const rayonsGroup = document.querySelector(".halo-rays");
+  const runeGroup = document.querySelector(".halo-runering");
+  const cx = 100, cy = 100;
+
+  // Rayons fins depuis le centre (façon éclat de lumière)
+  const nbRayons = 16;
+  for (let i = 0; i < nbRayons; i++) {
+    const angle = (i / nbRayons) * Math.PI * 2;
+    const r1 = 22;
+    const r2 = i % 2 === 0 ? 62 : 40;
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("x1", cx + r1 * Math.cos(angle));
+    line.setAttribute("y1", cy + r1 * Math.sin(angle));
+    line.setAttribute("x2", cx + r2 * Math.cos(angle));
+    line.setAttribute("y2", cy + r2 * Math.sin(angle));
+    rayonsGroup.appendChild(line);
+  }
+
+  // Anneau de "runes" : tirets irréguliers sur le cercle externe,
+  // pour évoquer une écriture circulaire sans avoir besoin d'une police runique.
+  const nbMarques = 40;
+  const rRune = 84;
+  for (let i = 0; i < nbMarques; i++) {
+    if (Math.random() < 0.3) continue; // espaces irréguliers, comme une vraie écriture
+    const angle = (i / nbMarques) * Math.PI * 2;
+    const longueur = 3 + Math.random() * 5;
+    const r1 = rRune - longueur / 2;
+    const r2 = rRune + longueur / 2;
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("x1", cx + r1 * Math.cos(angle));
+    line.setAttribute("y1", cy + r1 * Math.sin(angle));
+    line.setAttribute("x2", cx + r2 * Math.cos(angle));
+    line.setAttribute("y2", cy + r2 * Math.sin(angle));
+    runeGroup.appendChild(line);
+  }
+}
+
+construireHalo();
+
+const STAT_META = {
+  fatigue:    { label: "Fatigue",    color: "#C4644A" },
+  energie:    { label: "Énergie",    color: "#F5D182" },
+  stress:     { label: "Stress",     color: "#E8A33D" },
+  motivation: { label: "Motivation", color: "#D4AF5A" },
+};
+
+function render(data) {
+  const etat = data.etat;
+
+  document.getElementById("niveau-badge").textContent = `Niv. ${etat.niveau}`;
+  document.getElementById("xp-fill").style.width = `${etat.xp}%`;
+  document.getElementById("xp-label").textContent = `XP ${etat.xp} / 100`;
+
+  const grid = document.getElementById("stats-grid");
+  grid.innerHTML = "";
+  Object.entries(STAT_META).forEach(([key, meta]) => {
+    const value = etat[key];
+    const stat = document.createElement("div");
+    stat.className = "stat";
+    stat.innerHTML = `
+      <div class="stat-top">
+        <span class="stat-name">${meta.label}</span>
+        <span class="stat-value">${value}%</span>
+      </div>
+      <div class="stat-track">
+        <div class="stat-fill" style="width:${value}%; background:${meta.color}"></div>
+      </div>
+    `;
+    grid.appendChild(stat);
+  });
+
+  const consoleEl = document.getElementById("console");
+  consoleEl.innerHTML = "";
+  if (data.messageAction) {
+    const l1 = document.createElement("div");
+    l1.className = "line secondary";
+    l1.textContent = data.messageAction;
+    consoleEl.appendChild(l1);
+  }
+  const l2 = document.createElement("div");
+  l2.className = "line";
+  l2.textContent = data.analyse;
+  consoleEl.appendChild(l2);
+}
+
+async function appelerAction(action) {
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    const res = await fetch(`${FN_URL}?action=${action}`);
+    if (!res.ok) throw new Error(`Serveur : ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    document.getElementById("console").innerHTML =
+      `<div class="line secondary">Lumen : « Erreur technique : ${e.message} »</div>`;
+  } finally {
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  }
+}
+
+document.querySelectorAll("button[data-action]").forEach(btn => {
+  btn.addEventListener("click", () => appelerAction(btn.dataset.action));
+});
+
+async function envoyerCommande(texte) {
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    const res = await fetch(`${FN_URL}?texte=${encodeURIComponent(texte)}`);
+    if (!res.ok) throw new Error(`Serveur : ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    document.getElementById("console").innerHTML =
+      `<div class="line secondary">Lumen : « Erreur technique : ${e.message} »</div>`;
+  } finally {
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  }
+}
+
+document.getElementById("command-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("command-input");
+  const texte = input.value.trim();
+  if (!texte) return;
+  envoyerCommande(texte);
+  input.value = "";
+});
+
+appelerAction("statut");
+</script>
+
+</body>
+</html>
