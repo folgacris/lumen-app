@@ -162,6 +162,63 @@ function interpreterTexte(texte) {
   return null;
 }
 
+// Vraie conversation, via Groq (gratuit, sans carte bancaire, modèles
+// Llama hébergés). Utilisé pour tout ce qui n'est ni une action interne
+// (service/repos/...) ni une recherche d'info fraîche — recettes,
+// questions de cuisine, conversation libre.
+async function discuter(texte, etat) {
+  const cle = process.env.GROQ_API_KEY;
+
+  if (!cle) {
+    return "Lumen : « La conversation libre n'est pas encore configurée. Il manque une clé GROQ_API_KEY côté serveur. »";
+  }
+
+  const systemPrompt =
+    "Tu es Lumen, le système personnel d'un apprenti cuisinier. Tu l'aides dans son métier " +
+    "(recettes, techniques, dosages) et dans sa vie quotidienne. Ton ton est calme, précis, " +
+    "façon système ou majordome (un peu à la Raphael dans « Tensei Shitara Slime Datta Ken »), " +
+    "mais reste chaleureux et concret, jamais froid. Réponds en français, de façon concise " +
+    "(quelques phrases, pas un roman), sans emojis. " +
+    `État actuel connu : fatigue ${etat.fatigue}%, énergie ${etat.energie}%, stress ${etat.stress}%, ` +
+    `motivation ${etat.motivation}%, niveau ${etat.niveau}. Tiens-en compte seulement si c'est pertinent ` +
+    "pour la réponse (par exemple adapter un conseil si la fatigue est très haute), sans le répéter à chaque fois.";
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${cle}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: texte },
+        ],
+        temperature: 0.7,
+        max_tokens: 400,
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text();
+      return `Lumen : « La conversation a échoué (serveur : ${res.status}). »`;
+    }
+
+    const data = await res.json();
+    const reponse = data.choices?.[0]?.message?.content;
+
+    if (!reponse) {
+      return "Lumen : « Je n'ai pas réussi à formuler de réponse. »";
+    }
+
+    return `Lumen : « ${reponse.trim()} »`;
+  } catch (e) {
+    return `Lumen : « Conversation impossible : ${e.message} »`;
+  }
+}
+
 exports.handler = async (event) => {
   connectLambda(event);
   const store = getStore("lumen");
@@ -178,8 +235,7 @@ exports.handler = async (event) => {
       if (actionTrouvee) {
         messageAction = appliquerAction(etat, actionTrouvee);
       } else {
-        messageAction =
-          "Lumen : « Je n'ai pas identifié d'action précise dans votre phrase. Essayez de mentionner le service, la fatigue, une tâche terminée, la fin de journée, ou demandez-moi de chercher quelque chose. »";
+        messageAction = await discuter(params.texte, etat);
       }
     }
   } else {
