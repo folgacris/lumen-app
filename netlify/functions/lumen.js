@@ -1,20 +1,18 @@
 const { getStore, connectLambda } = require("@netlify/blobs");
 
+// ==========================================
+// ÉTAT
+// ==========================================
+
 const DIALOGUES = {
-  coup_de_feu:
-    "Lumen : « Réponse. Le service commence. Je surveille vos constantes en arrière-plan. Ne laissez pas la pression du coup de feu perturber vos gestes. Une commande à la fois. »",
   surchauffe:
-    "Lumen : « Alerte. Une hausse importante de votre niveau de stress est détectée. La cuisine exige de la précision, pas de la précipitation. Respirez. Réduisez momentanément votre charge. »",
+    "Lumen : « Alerte. Une hausse importante de votre niveau de stress est détectée. Respirez. Réduisez momentanément votre charge. »",
   epuisement:
-    "Lumen : « Évaluation terminée. Vos réserves physiques sont faibles. Votre journée de travail est suffisante. La récupération devient maintenant prioritaire. »",
+    "Lumen : « Évaluation terminée. Vos réserves physiques sont faibles. La récupération devient prioritaire. »",
   amplification:
-    "Lumen : « Analyse terminée. Votre niveau d'énergie et votre motivation sont élevés. Vos capacités d'apprentissage sont actuellement favorables. C'est le moment idéal pour progresser. »",
-  soiree:
-    "Lumen : « Transition engagée. Le tablier est posé. La journée de travail est terminée. Relâchez les épaules. Hydratez-vous. Profitez maintenant de votre soirée. »",
+    "Lumen : « Analyse terminée. Votre niveau d'énergie et votre motivation sont élevés. C'est le moment idéal pour progresser. »",
   stable:
     "Lumen : « Analyse terminée. Vos constantes sont stables. Aucune alerte particulière. Avancez à votre rythme. »",
-  recette:
-    "Lumen : « Analyse culinaire prête. Indiquez-moi le problème de dosage, la technique ou l'ingrédient concerné. »",
 };
 
 function analyserEtat(fatigue, energie, stress, motivation) {
@@ -26,66 +24,88 @@ function analyserEtat(fatigue, energie, stress, motivation) {
   return { statut: "stable", message: DIALOGUES.stable };
 }
 
-const DEFAUT = { niveau: 1, xp: 0, fatigue: 50, energie: 70, stress: 20, motivation: 70 };
+const ETAT_DEFAUT = { niveau: 1, xp: 0, fatigue: 50, energie: 70, stress: 20, motivation: 70 };
 
 async function chargerEtat(store) {
   const donnees = await store.get("etat", { type: "json" });
-  return donnees || { ...DEFAUT };
+  return donnees || { ...ETAT_DEFAUT };
 }
 
 async function sauvegarderEtat(store, etat) {
   await store.setJSON("etat", etat);
 }
 
-function appliquerAction(etat, action) {
-  let messageAction = null;
+// ==========================================
+// MODES — configurables depuis l'interface,
+// pas codés en dur. Chacun a un nom, une couleur,
+// et des effets sur les 4 stats + XP.
+// ==========================================
 
-  switch (action) {
-    case "service":
-      etat.stress = Math.min(100, etat.stress + 25);
-      etat.fatigue = Math.min(100, etat.fatigue + 15);
-      messageAction = DIALOGUES.coup_de_feu;
-      break;
+const MODES_DEFAUT = [
+  { id: "concentration", nom: "Concentration", couleur: "#5B8DEF", effets: { fatigue: 5, energie: -5, stress: 10, motivation: 0, xp: 0 } },
+  { id: "repos", nom: "Repos", couleur: "#3FA796", effets: { fatigue: -25, energie: 20, stress: -20, motivation: 0, xp: 0 } },
+  { id: "fin-journee", nom: "Fin de journée", couleur: "#8A6FD4", effets: { fatigue: 0, energie: 0, stress: -30, motivation: 0, xp: 0 } },
+  { id: "tache-accomplie", nom: "Tâche accomplie", couleur: "#D4AF5A", effets: { fatigue: 0, energie: 0, stress: 0, motivation: 0, xp: 20 } },
+];
 
-    case "soiree":
-      etat.stress = Math.max(0, etat.stress - 30);
-      messageAction = DIALOGUES.soiree;
-      break;
-
-    case "repos":
-      etat.fatigue = Math.max(0, etat.fatigue - 25);
-      etat.energie = Math.min(100, etat.energie + 20);
-      etat.stress = Math.max(0, etat.stress - 20);
-      messageAction = `Lumen : « Repos enregistré. Fatigue : ${etat.fatigue}%, Énergie : ${etat.energie}%, Stress : ${etat.stress}%. »`;
-      break;
-
-    case "valider":
-      etat.xp += 20;
-      if (etat.xp >= 100) {
-        etat.xp -= 100;
-        etat.niveau += 1;
-        messageAction = `Lumen : « ÉVOLUTION DÉTECTÉE ! Vous avez atteint le Niveau ${etat.niveau}. »`;
-      } else {
-        messageAction = `Lumen : « Tâche validée. +20 XP (Total : ${etat.xp}/100 XP). »`;
-      }
-      break;
-
-    case "reinitialiser":
-      Object.assign(etat, DEFAUT);
-      messageAction = "Lumen : « Système réinitialisé. »";
-      break;
-
-    case "statut":
-    default:
-      break;
-  }
-
-  return messageAction;
+async function chargerModes(store) {
+  const modes = await store.get("modes", { type: "json" });
+  return modes || MODES_DEFAUT.map((m) => ({ ...m }));
 }
 
-// Recherche web via Tavily (clé gratuite, sans carte bancaire,
-// pensée pour les assistants IA — renvoie une réponse synthétisée
-// directement plutôt qu'une liste de liens à trier).
+async function sauvegarderModes(store, modes) {
+  await store.setJSON("modes", modes);
+}
+
+function clamp(valeur) {
+  return Math.max(0, Math.min(100, valeur));
+}
+
+// Applique les effets d'un mode à l'état, avec gestion du niveau
+// (le XP qui dépasse 100 fait monter de niveau, comme avant).
+function appliquerEffets(etat, effets) {
+  etat.fatigue = clamp(etat.fatigue + (effets.fatigue || 0));
+  etat.energie = clamp(etat.energie + (effets.energie || 0));
+  etat.stress = clamp(etat.stress + (effets.stress || 0));
+  etat.motivation = clamp(etat.motivation + (effets.motivation || 0));
+
+  let messageNiveau = "";
+  if (effets.xp) {
+    etat.xp += effets.xp;
+    while (etat.xp >= 100) {
+      etat.xp -= 100;
+      etat.niveau += 1;
+      messageNiveau += `\n\nLumen : « ÉVOLUTION DÉTECTÉE ! Vous avez atteint le Niveau ${etat.niveau}. »`;
+    }
+    while (etat.xp < 0) {
+      etat.xp += 100;
+      etat.niveau = Math.max(1, etat.niveau - 1);
+    }
+  }
+  return messageNiveau;
+}
+
+function activerMode(etat, mode) {
+  const messageNiveau = appliquerEffets(etat, mode.effets);
+  return `Lumen : « Mode « ${mode.nom} » activé. »${messageNiveau}`;
+}
+
+// Un mode peut aussi être déclenché en tapant simplement son nom
+// dans la barre de commande — pas besoin de cliquer le bouton.
+function trouverModeParTexte(texte, modes) {
+  const normalise = texte.toLowerCase();
+  return modes.find((m) => normalise.includes(m.nom.toLowerCase())) || null;
+}
+
+function idUnique() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// ==========================================
+// RECHERCHE WEB — Tavily (gratuit, sans carte,
+// pensé pour les assistants IA).
+// ==========================================
+
 async function rechercherWeb(requete) {
   const cle = process.env.TAVILY_API_KEY;
 
@@ -112,9 +132,7 @@ async function rechercherWeb(requete) {
 
     const data = await res.json();
 
-    if (data.answer) {
-      return `Lumen : « ${data.answer} »`;
-    }
+    if (data.answer) return `Lumen : « ${data.answer} »`;
 
     if (data.results && data.results.length > 0) {
       const premier = data.results[0];
@@ -127,20 +145,6 @@ async function rechercherWeb(requete) {
   }
 }
 
-// Compréhension de texte libre, façon Jarvis : quelques familles de
-// phrases françaises mappées vers les actions existantes. Pas de LLM
-// ici (ça coûterait une clé API) — juste des mots-clés, volontairement
-// simple et gratuit.
-const INTENTIONS = [
-  { action: "service", mots: ["coup de feu", "service commence", "ça part", "rush", "débordé"] },
-  { action: "repos", mots: ["fatigué", "épuisé", "je me repose", "besoin de repos", "crevé"] },
-  { action: "soiree", mots: ["fini", "journée terminée", "je rentre", "soirée", "tablier posé"] },
-  { action: "valider", mots: ["j'ai fini", "tâche terminée", "c'est fait", "terminé", "validé"] },
-];
-
-// Déclencheurs de recherche web — vérifiés en premier, avant les
-// intentions internes, car une phrase comme "cherche-moi une recette
-// de canard" doit partir sur internet, pas sur une action interne.
 const DECLENCHEURS_RECHERCHE = [
   "cherche", "recherche", "trouve-moi", "trouve moi", "qu'est-ce que",
   "qu'est ce que", "c'est quoi", "qui est", "quelle est", "quel est",
@@ -152,20 +156,11 @@ function estUneRecherche(texte) {
   return DECLENCHEURS_RECHERCHE.some((mot) => normalise.includes(mot));
 }
 
-function interpreterTexte(texte) {
-  const normalise = texte.toLowerCase();
-  for (const intention of INTENTIONS) {
-    if (intention.mots.some((mot) => normalise.includes(mot))) {
-      return intention.action;
-    }
-  }
-  return null;
-}
+// ==========================================
+// CONVERSATION LIBRE — Groq (gratuit, sans carte).
+// Assistant généraliste : pas ciblé sur un métier.
+// ==========================================
 
-// Vraie conversation, via Groq (gratuit, sans carte bancaire, modèles
-// Llama hébergés). Utilisé pour tout ce qui n'est ni une action interne
-// (service/repos/...) ni une recherche d'info fraîche — recettes,
-// questions de cuisine, conversation libre.
 async function discuter(texte, etat) {
   const cle = process.env.GROQ_API_KEY;
 
@@ -174,14 +169,14 @@ async function discuter(texte, etat) {
   }
 
   const systemPrompt =
-    "Tu es Lumen, le système personnel d'un apprenti cuisinier. Tu l'aides dans son métier " +
-    "(recettes, techniques, dosages) et dans sa vie quotidienne. Ton ton est calme, précis, " +
-    "façon système ou majordome (un peu à la Raphael dans « Tensei Shitara Slime Datta Ken »), " +
-    "mais reste chaleureux et concret, jamais froid. Réponds en français, de façon concise " +
-    "(quelques phrases, pas un roman), sans emojis. " +
+    "Tu es Lumen, un assistant personnel généraliste. Tu aides la personne qui te parle dans " +
+    "n'importe quel domaine de sa vie — travail, études, sport, organisation, questions pratiques " +
+    "ou conversation simple. Tu ne présupposes jamais son métier ou son contexte. Ton ton est calme, " +
+    "précis, façon système, mais reste chaleureux et concret, jamais froid. Réponds en français, " +
+    "de façon concise (quelques phrases, pas un roman), sans emojis. " +
     `État actuel connu : fatigue ${etat.fatigue}%, énergie ${etat.energie}%, stress ${etat.stress}%, ` +
-    `motivation ${etat.motivation}%, niveau ${etat.niveau}. Tiens-en compte seulement si c'est pertinent ` +
-    "pour la réponse (par exemple adapter un conseil si la fatigue est très haute), sans le répéter à chaque fois.";
+    `motivation ${etat.motivation}%, niveau ${etat.niveau}. Tiens-en compte seulement si c'est pertinent, ` +
+    "sans le répéter à chaque fois.";
 
   try {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -202,45 +197,127 @@ async function discuter(texte, etat) {
     });
 
     if (!res.ok) {
-      const detail = await res.text();
       return `Lumen : « La conversation a échoué (serveur : ${res.status}). »`;
     }
 
     const data = await res.json();
     const reponse = data.choices?.[0]?.message?.content;
 
-    if (!reponse) {
-      return "Lumen : « Je n'ai pas réussi à formuler de réponse. »";
-    }
-
+    if (!reponse) return "Lumen : « Je n'ai pas réussi à formuler de réponse. »";
     return `Lumen : « ${reponse.trim()} »`;
   } catch (e) {
     return `Lumen : « Conversation impossible : ${e.message} »`;
   }
 }
 
+// ==========================================
+// TRANSCRIPTION VOCALE — Whisper via Groq
+// (gratuit, sans carte, ~8h d'audio/jour).
+// ==========================================
+
+async function transcrire(audioBuffer, mimeType) {
+  const cle = process.env.GROQ_API_KEY;
+
+  if (!cle) {
+    throw new Error("GROQ_API_KEY manquante côté serveur — la voix n'est pas encore configurée.");
+  }
+
+  const form = new FormData();
+  form.append("file", new Blob([audioBuffer], { type: mimeType || "audio/webm" }), "audio.webm");
+  form.append("model", "whisper-large-v3-turbo");
+  form.append("language", "fr");
+
+  const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${cle}` },
+    body: form,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Transcription échouée (serveur : ${res.status})`);
+  }
+
+  const data = await res.json();
+  return (data.text || "").trim();
+}
+
+// ==========================================
+// TRAITEMENT D'UN TEXTE (tapé ou transcrit) :
+// recherche web > mode reconnu par son nom > conversation libre.
+// ==========================================
+
+async function traiterTexte(texte, etat, modes) {
+  if (estUneRecherche(texte)) {
+    return await rechercherWeb(texte);
+  }
+
+  const mode = trouverModeParTexte(texte, modes);
+  if (mode) {
+    return activerMode(etat, mode);
+  }
+
+  return await discuter(texte, etat);
+}
+
+// ==========================================
+// POINT D'ENTRÉE
+// ==========================================
+
 exports.handler = async (event) => {
   connectLambda(event);
   const store = getStore("lumen");
+
   let etat = await chargerEtat(store);
+  let modes = await chargerModes(store);
 
-  const params = event.queryStringParameters || {};
   let messageAction = null;
+  let texteEntendu = null;
 
-  if (params.texte) {
-    if (estUneRecherche(params.texte)) {
-      messageAction = await rechercherWeb(params.texte);
-    } else {
-      const actionTrouvee = interpreterTexte(params.texte);
-      if (actionTrouvee) {
-        messageAction = appliquerAction(etat, actionTrouvee);
-      } else {
-        messageAction = await discuter(params.texte, etat);
-      }
+  if (event.httpMethod === "POST") {
+    // Entrée vocale : le corps JSON contient l'audio encodé en base64.
+    try {
+      const corps = JSON.parse(event.body || "{}");
+      const buffer = Buffer.from(corps.audioBase64 || "", "base64");
+      texteEntendu = await transcrire(buffer, corps.mimeType);
+      messageAction = texteEntendu
+        ? await traiterTexte(texteEntendu, etat, modes)
+        : "Lumen : « Je n'ai rien entendu de clair. »";
+    } catch (e) {
+      messageAction = `Lumen : « ${e.message} »`;
     }
   } else {
-    const action = params.action || "statut";
-    messageAction = appliquerAction(etat, action);
+    const params = event.queryStringParameters || {};
+
+    if (params.texte) {
+      messageAction = await traiterTexte(params.texte, etat, modes);
+    } else if (params.action === "activerMode" && params.modeId) {
+      const mode = modes.find((m) => m.id === params.modeId);
+      messageAction = mode ? activerMode(etat, mode) : "Lumen : « Mode introuvable. »";
+    } else if (params.action === "creerMode") {
+      const nouveauMode = {
+        id: idUnique(),
+        nom: params.nom || "Nouveau mode",
+        couleur: params.couleur || "#D4AF5A",
+        effets: {
+          fatigue: Number(params.fatigue) || 0,
+          energie: Number(params.energie) || 0,
+          stress: Number(params.stress) || 0,
+          motivation: Number(params.motivation) || 0,
+          xp: Number(params.xp) || 0,
+        },
+      };
+      modes.push(nouveauMode);
+      await sauvegarderModes(store, modes);
+      messageAction = `Lumen : « Mode « ${nouveauMode.nom} » créé. »`;
+    } else if (params.action === "supprimerMode" && params.modeId) {
+      modes = modes.filter((m) => m.id !== params.modeId);
+      await sauvegarderModes(store, modes);
+      messageAction = "Lumen : « Mode supprimé. »";
+    } else if (params.action === "reinitialiser") {
+      Object.assign(etat, ETAT_DEFAUT);
+      messageAction = "Lumen : « Système réinitialisé. »";
+    }
+    // action=statut (ou rien) : pas d'effet, juste lire l'état actuel.
   }
 
   await sauvegarderEtat(store, etat);
@@ -254,8 +331,10 @@ exports.handler = async (event) => {
     },
     body: JSON.stringify({
       etat,
+      modes,
       analyse: analyse.message,
       messageAction,
+      texteEntendu,
     }),
   };
 };
