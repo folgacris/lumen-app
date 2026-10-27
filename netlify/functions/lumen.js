@@ -1,4 +1,5 @@
 const { getStore, connectLambda } = require("@netlify/blobs");
+const { envoyerATous } = require("./lib/push.js");
 
 // ==========================================
 // ÉTAT
@@ -270,6 +271,12 @@ exports.handler = async (event) => {
   let etat = await chargerEtat(store);
   let modes = await chargerModes(store);
 
+  // Photo de l'état avant l'action, pour détecter un changement à notifier.
+  const avant = {
+    niveau: etat.niveau,
+    statut: analyserEtat(etat.fatigue, etat.energie, etat.stress, etat.motivation).statut,
+  };
+
   let messageAction = null;
   let texteEntendu = null;
 
@@ -322,6 +329,27 @@ exports.handler = async (event) => {
 
   await sauvegarderEtat(store, etat);
   const analyse = analyserEtat(etat.fatigue, etat.energie, etat.stress, etat.motivation);
+
+  // Notifications d'événement. Elles ne doivent jamais faire planter l'app.
+  try {
+    const STATUTS_ALERTE = ["surchauffe_critique", "surchauffe", "epuisement"];
+    if (etat.niveau > avant.niveau) {
+      await envoyerATous(store, {
+        title: "Évolution détectée",
+        body: `Tu as atteint le niveau ${etat.niveau}.`,
+        tag: "niveau",
+      });
+    }
+    if (STATUTS_ALERTE.includes(analyse.statut) && !STATUTS_ALERTE.includes(avant.statut)) {
+      await envoyerATous(store, {
+        title: "Alerte Lumen",
+        body: analyse.message.replace(/^Lumen : « /, "").replace(/ »$/, ""),
+        tag: "etat",
+      });
+    }
+  } catch (e) {
+    console.error("Notification échouée :", e.message);
+  }
 
   return {
     statusCode: 200,

@@ -357,6 +357,7 @@
     <button data-action="repos">Repos</button>
     <button data-action="soiree">Soirée</button>
     <button class="warn" data-action="valider">Valider une tâche</button>
+    <button id="btn-notif" type="button">Activer les notifications</button>
   </div>
 
   <footer>système personnel — hors ligne si non connecté</footer>
@@ -496,6 +497,52 @@ document.getElementById("command-form").addEventListener("submit", (e) => {
   envoyerCommande(texte);
   input.value = "";
 });
+
+const NOTIF_URL = "/.netlify/functions/notif";
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
+function cleVersUint8(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const brut = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(brut, (c) => c.charCodeAt(0));
+}
+
+function direConsole(msg) {
+  document.getElementById("console").innerHTML =
+    `<div class="line secondary">Lumen : « ${msg} »</div>`;
+}
+
+async function activerNotifications() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return direConsole("Notifications indisponibles ici. Ajoute l'app à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis rouvre-la depuis son icône.");
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    return direConsole("Permission refusée. Tu peux la changer dans Réglages > Notifications > Lumen.");
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const { cle } = await (await fetch(NOTIF_URL, { cache: "no-store" })).json();
+    if (!cle) return direConsole("Clé VAPID manquante côté serveur.");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleVersUint8(cle) });
+    }
+    const post = (corps) => fetch(NOTIF_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps),
+    });
+    await post({ action: "abonner", abonnement: sub.toJSON() });
+    await post({ action: "tester" });
+    direConsole("Notifications activées. Une notification de test vient d'être envoyée.");
+  } catch (e) {
+    direConsole(`Activation impossible : ${e.message}`);
+  }
+}
+
+document.getElementById("btn-notif").addEventListener("click", activerNotifications);
 
 appelerAction("statut");
 </script>
