@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Lumen</title>
+
+<link rel="manifest" href="/manifest.json" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0A0E14" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0F0B06;
+    --panel: #1A140B;
+    --panel-border: #3A2D16;
+    --accent: #D4AF5A;
+    --accent-bright: #F5D182;
+    --accent-dim: #6B551F;
+    --warn: #E8A33D;
+    --danger: #C4644A;
+    --text: #F1E7D2;
+    --muted: #8A7B5C;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212, 175, 90, 0.10), transparent 70%),
+      var(--bg);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overscroll-behavior-y: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  .screen {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 24px) 20px calc(env(safe-area-inset-bottom, 24px) + 20px);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .halo-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0 2px;
+  }
+
+  .halo {
+    width: 200px;
+    height: 200px;
+    max-width: 62vw;
+    max-height: 62vw;
+  }
+
+  .halo-outer {
+    transform-origin: 100px 100px;
+    animation: spin-slow 40s linear infinite;
+  }
+
+  .halo-runering {
+    transform-origin: 100px 100px;
+    animation: spin-slow-reverse 60s linear infinite;
+  }
+
+  .halo-rays {
+    transform-origin: 100px 100px;
+    animation: spin-slow 90s linear infinite;
+  }
+
+  .halo-mid {
+    transform-origin: 100px 100px;
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes spin-slow-reverse {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 8px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  .niveau-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .xp-track {
+    height: 6px;
+    background: var(--panel-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .xp-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .xp-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .stat .stat-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .stat .stat-name { color: var(--muted); }
+  .stat .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+  }
+
+  .stat-track {
+    height: 5px;
+    background: var(--panel-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .stat-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease, background 0.5s ease;
+  }
+
+  .console {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--accent);
+    min-height: 64px;
+  }
+
+  .console .line {
+    animation: reveal 0.4s ease;
+    margin-bottom: 6px;
+  }
+
+  .console .line.secondary { color: var(--text); }
+
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .command-bar {
+    display: flex;
+    gap: 8px;
+  }
+
+  .command-bar input {
+    flex: 1;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    outline: none;
+  }
+
+  .command-bar input:focus {
+    border-color: var(--accent-dim);
+  }
+
+  .command-bar input::placeholder {
+    color: var(--muted);
+  }
+
+  .command-submit {
+    flex-shrink: 0;
+    padding: 14px 18px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  button {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  }
+
+  button:active { transform: scale(0.97); background: #161C26; }
+
+  button.primary { border-color: var(--accent-dim); color: var(--accent); }
+  button.warn { border-color: #4A3A22; color: var(--warn); }
+
+  button:disabled { opacity: 0.4; }
+
+  footer {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding-top: 4px;
+  }
+
+  /* ===== Fusion Hunter System ===== */
+  .screen { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); }
+  .screen[hidden] { display: none; }
+  nav.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center;
+    background: rgba(15,11,6,0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--panel-border); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  nav.tabbar .inner { display: flex; width: 100%; max-width: 480px; }
+  .tab { flex: 1; background: none; border: none; border-radius: 0; padding: 12px 0 10px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .5px; }
+  .tab:active { background: none; transform: none; }
+  .tab.active { color: var(--accent-bright); }
+  .section-title { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
+  .section-title h2 { font-size: 20px; margin: 0; }
+  .pill { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); border: 1px solid var(--accent-dim); padding: 4px 10px; border-radius: 20px; }
+  .rang-line { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); margin-top: 4px; }
+  .mini { padding: 9px 14px; font-size: 13px; }
+  .quest-form { display: none; flex-direction: column; gap: 10px; }
+  .quest-form.show { display: flex; }
+  .quest-form input, .quest-form select { width: 100%; font-family: inherit; font-size: 15px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--panel-border); border-radius: 10px; padding: 12px; outline: none; -webkit-appearance: none; appearance: none; }
+  .quest-form .row, .quest-form .submit-row { display: flex; gap: 8px; }
+  .quest-form .row select, .quest-form .submit-row button { flex: 1; }
+  .quest-card { display: flex; gap: 12px; align-items: flex-start; padding: 14px; margin-bottom: 10px; }
+  .q-check { width: 24px; height: 24px; border-radius: 7px; border: 1.5px solid var(--accent); flex-shrink: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--bg); font-size: 14px; margin-top: 1px; }
+  .q-check.done { background: var(--accent); }
+  .q-body { flex: 1; min-width: 0; }
+  .q-title { font-size: 15px; font-weight: 500; }
+  .q-title.done { color: var(--muted); text-decoration: line-through; }
+  .q-detail { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .q-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .5px; color: var(--accent); margin-top: 6px; text-transform: uppercase; }
+  .q-del { color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; }
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 22px 10px; line-height: 1.5; }
+  .stat-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--panel-border); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .nom { width: 96px; font-size: 13px; color: var(--muted); }
+  .stat-row .barre { flex: 1; height: 5px; background: var(--panel-border); border-radius: 3px; overflow: hidden; }
+  .stat-row .barre div { height: 100%; background: var(--accent); }
+  .stat-row .val { width: 26px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+  .plus { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent); text-align: center; line-height: 25px; cursor: pointer; flex-shrink: 0; }
+  .plus.off { visibility: hidden; }
+  .coll { display: flex; gap: 10px; padding: 7px 0; opacity: .4; }
+  .coll.on { opacity: 1; }
+  .coll .ic { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .coll.on .ic { border-color: var(--accent-dim); color: var(--accent); }
+  .coll strong { display: block; font-size: 14px; font-weight: 500; }
+  .coll span { font-size: 12px; color: var(--muted); }
+  .journal-item { display: flex; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; padding: 3px 0; color: var(--muted); }
+  .journal-item time { color: var(--accent-dim); flex-shrink: 0; }
+  #toast { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 50%; transform: translate(-50%, -20px); z-index: 50; opacity: 0;
+    pointer-events: none; background: var(--panel); border: 1px solid var(--accent); color: var(--accent-bright);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 10px 18px; border-radius: 10px; transition: all .3s ease; white-space: nowrap; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="screen" id="view-lumen">
+
+  <header>
+    <div class="brand">
+      <h1>Lumen</h1>
+    </div>
+    <div>
+      <div class="niveau-badge" id="niveau-badge">Niv. —</div>
+    </div>
+  </header>
+  <div class="rang-line" id="rang-line"></div>
+
+  <div class="halo-wrap">
+    <svg class="halo" viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF3D6" />
+          <stop offset="35%" stop-color="#F5D182" />
+          <stop offset="100%" stop-color="#F5D182" stop-opacity="0" />
+        </radialGradient>
+        <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.2" />
+        </filter>
+      </defs>
+
+      <!-- rayons -->
+      <g class="halo-rays" stroke="#D4AF5A" stroke-width="0.6" opacity="0.55">
+        <!-- generated by JS for even spacing -->
+      </g>
+
+      <!-- anneau externe de runes (tirets) -->
+      <g class="halo-runering" stroke="#D4AF5A" stroke-width="2" opacity="0.85">
+      </g>
+
+      <!-- anneau fin externe -->
+      <circle class="halo-outer" cx="100" cy="100" r="94" fill="none" stroke="#D4AF5A" stroke-width="0.8" opacity="0.5" />
+
+      <!-- anneau principal -->
+      <circle class="halo-mid" cx="100" cy="100" r="72" fill="none" stroke="#D4AF5A" stroke-width="1.4" opacity="0.9" />
+
+      <!-- lueur + cœur -->
+      <circle cx="100" cy="100" r="46" fill="url(#coreGlow)" filter="url(#softBlur)" />
+      <circle cx="100" cy="100" r="20" fill="#FFF3D6" />
+    </svg>
+  </div>
+
+  <div>
+    <div class="xp-track"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    <div class="xp-label" id="xp-label">XP — / 100</div>
+  </div>
+
+  <div class="panel stats-grid" id="stats-grid">
+    <!-- stats injected by JS -->
+  </div>
+
+  <div class="panel console" id="console">
+    <div class="line">Lumen : « Connexion au système... »</div>
+  </div>
+
+  <form class="command-bar" id="command-form">
+    <input
+      type="text"
+      id="command-input"
+      placeholder="Parlez-moi, ex : « je suis épuisé » ou « cherche une recette de risotto »"
+      autocomplete="off"
+    />
+    <button type="submit" class="primary command-submit">Envoyer</button>
+  </form>
+
+  <div class="actions">
+    <button class="primary" data-action="service">Service</button>
+    <button data-action="repos">Repos</button>
+    <button data-action="soiree">Soirée</button>
+    <button class="warn" data-action="valider">Valider une tâche</button>
+    <button id="btn-notif" type="button">Activer les notifications</button>
+  </div>
+
+  <footer>système personnel — hors ligne si non connecté</footer>
+
+</div>
+
+<div class="screen" id="view-quetes" hidden>
+  <div class="section-title"><h2>Quêtes</h2><button class="primary mini" id="btn-add-quete" type="button">+ Ajouter</button></div>
+  <div class="panel quest-form" id="quest-form">
+    <input id="q-titre" placeholder="Nouvelle mission" maxlength="60" />
+    <input id="q-detail" placeholder="Détails (optionnel)" maxlength="80" />
+    <div class="row">
+      <select id="q-kind"><option value="daily">Quotidienne</option><option value="weekly">Hebdomadaire</option><option value="custom">Personnalisée</option></select>
+      <select id="q-diff"><option value="easy">Facile · 15 XP</option><option value="medium" selected>Intermédiaire · 30 XP</option><option value="hard">Difficile · 60 XP</option><option value="extreme">Extrême · 120 XP</option></select>
+    </div>
+    <div class="submit-row"><button type="button" id="q-annuler">Annuler</button><button type="button" class="primary" id="q-valider">Valider</button></div>
+  </div>
+  <div id="quest-list"></div>
+</div>
+
+<div class="screen" id="view-hunter" hidden>
+  <div class="section-title"><h2>Hunter</h2><span class="pill"><span id="h-points">0</span> points</span></div>
+  <div class="panel" style="display:flex;justify-content:center;"><canvas id="radar" width="600" height="300" style="width:100%;max-width:100%;height:auto;"></canvas></div>
+  <div class="panel" id="stat-list"></div>
+  <div class="panel"><div class="stat-top" style="margin-bottom:8px;"><span class="stat-name">Compétences</span></div><div id="skill-list"></div></div>
+  <div class="panel"><div class="stat-top" style="margin-bottom:8px;"><span class="stat-name">Succès</span></div><div id="ach-list"></div></div>
+  <div class="panel"><div class="stat-top" style="margin-bottom:8px;"><span class="stat-name">Journal</span></div><div id="journal"></div></div>
+</div>
+
+<nav class="tabbar"><div class="inner">
+  <button class="tab active" data-tab="lumen" type="button">Lumen</button>
+  <button class="tab" data-tab="quetes" type="button">Quêtes</button>
+  <button class="tab" data-tab="hunter" type="button">Hunter</button>
+</div></nav>
+
+<script>
+const FN_URL = "/.netlify/functions/lumen";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function construireHalo() {
+  const rayonsGroup = document.querySelector(".halo-rays");
+  const runeGroup = document.querySelector(".halo-runering");
+  const cx = 100, cy = 100;
+
+  // Rayons fins depuis le centre (façon éclat de lumière)
+  const nbRayons = 16;
+  for (let i = 0; i < nbRayons; i++) {
+    const angle = (i / nbRayons) * Math.PI * 2;
+    const r1 = 22;
+    const r2 = i % 2 === 0 ? 62 : 40;
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("x1", cx + r1 * Math.cos(angle));
+    line.setAttribute("y1", cy + r1 * Math.sin(angle));
+    line.setAttribute("x2", cx + r2 * Math.cos(angle));
+    line.setAttribute("y2", cy + r2 * Math.sin(angle));
+    rayonsGroup.appendChild(line);
+  }
+
+  // Anneau de "runes" : tirets irréguliers sur le cercle externe,
+  // pour évoquer une écriture circulaire sans avoir besoin d'une police runique.
+  const nbMarques = 40;
+  const rRune = 84;
+  for (let i = 0; i < nbMarques; i++) {
+    if (Math.random() < 0.3) continue; // espaces irréguliers, comme une vraie écriture
+    const angle = (i / nbMarques) * Math.PI * 2;
+    const longueur = 3 + Math.random() * 5;
+    const r1 = rRune - longueur / 2;
+    const r2 = rRune + longueur / 2;
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("x1", cx + r1 * Math.cos(angle));
+    line.setAttribute("y1", cy + r1 * Math.sin(angle));
+    line.setAttribute("x2", cx + r2 * Math.cos(angle));
+    line.setAttribute("y2", cy + r2 * Math.sin(angle));
+    runeGroup.appendChild(line);
+  }
+}
+
+construireHalo();
+
+const STAT_META = {
+  fatigue:    { label: "Fatigue",    color: "#C4644A" },
+  energie:    { label: "Énergie",    color: "#F5D182" },
+  stress:     { label: "Stress",     color: "#E8A33D" },
+  motivation: { label: "Motivation", color: "#D4AF5A" },
+};
+
+function render(data) {
+  const etat = data.etat;
+
+  document.getElementById("niveau-badge").textContent = `Niv. ${etat.niveau}`;
+  document.getElementById("xp-fill").style.width = `${Math.min(100, (etat.xp / (etat.xpMax || 100)) * 100)}%`;
+  document.getElementById("xp-label").textContent = `XP ${etat.xp} / ${etat.xpMax || 100}`;
+
+  const grid = document.getElementById("stats-grid");
+  grid.innerHTML = "";
+  Object.entries(STAT_META).forEach(([key, meta]) => {
+    const value = etat[key];
+    const stat = document.createElement("div");
+    stat.className = "stat";
+    stat.innerHTML = `
+      <div class="stat-top">
+        <span class="stat-name">${meta.label}</span>
+        <span class="stat-value">${value}%</span>
+      </div>
+      <div class="stat-track">
+        <div class="stat-fill" style="width:${value}%; background:${meta.color}"></div>
+      </div>
+    `;
+    grid.appendChild(stat);
+  });
+
+  if (data.hunter) renderHunter(data.hunter);
+
+  const consoleEl = document.getElementById("console");
+  consoleEl.innerHTML = "";
+  if (data.messageAction) {
+    const l1 = document.createElement("div");
+    l1.className = "line secondary";
+    l1.textContent = data.messageAction;
+    consoleEl.appendChild(l1);
+  }
+  const l2 = document.createElement("div");
+  l2.className = "line";
+  l2.textContent = data.analyse;
+  consoleEl.appendChild(l2);
+}
+
+async function appelerAction(action) {
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    // Les boutons rapides activent les modes par défaut (ids côté serveur).
+    const MODE_BOUTON = { service: "concentration", repos: "repos", soiree: "fin-journee", valider: "tache-accomplie" };
+    const url = MODE_BOUTON[action] ? `${FN_URL}?action=activerMode&modeId=${MODE_BOUTON[action]}` : `${FN_URL}?action=${action}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Serveur : ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    document.getElementById("console").innerHTML =
+      `<div class="line secondary">Lumen : « Erreur technique : ${e.message} »</div>`;
+  } finally {
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  }
+}
+
+document.querySelectorAll("button[data-action]").forEach(btn => {
+  btn.addEventListener("click", () => appelerAction(btn.dataset.action));
+});
+
+async function envoyerCommande(texte) {
+  document.querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    const res = await fetch(`${FN_URL}?texte=${encodeURIComponent(texte)}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Serveur : ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    document.getElementById("console").innerHTML =
+      `<div class="line secondary">Lumen : « Erreur technique : ${e.message} »</div>`;
+  } finally {
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+  }
+}
+
+document.getElementById("command-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("command-input");
+  const texte = input.value.trim();
+  if (!texte) return;
+  envoyerCommande(texte);
+  input.value = "";
+});
+
+const NOTIF_URL = "/.netlify/functions/notif";
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
+function cleVersUint8(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const brut = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(brut, (c) => c.charCodeAt(0));
+}
+
+function direConsole(msg) {
+  document.getElementById("console").innerHTML =
+    `<div class="line secondary">Lumen : « ${msg} »</div>`;
+}
+
+async function activerNotifications() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return direConsole("Notifications indisponibles ici. Ajoute l'app à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis rouvre-la depuis son icône.");
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    return direConsole("Permission refusée. Tu peux la changer dans Réglages > Notifications > Lumen.");
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const { cle } = await (await fetch(NOTIF_URL, { cache: "no-store" })).json();
+    if (!cle) return direConsole("Clé VAPID manquante côté serveur.");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleVersUint8(cle) });
+    }
+    const post = (corps) => fetch(NOTIF_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corps),
+    });
+    await post({ action: "abonner", abonnement: sub.toJSON() });
+    await post({ action: "tester" });
+    direConsole("Notifications activées. Une notification de test vient d'être envoyée.");
+  } catch (e) {
+    direConsole(`Activation impossible : ${e.message}`);
+  }
+}
+
+document.getElementById("btn-notif").addEventListener("click", activerNotifications);
+
+/* ===== Fusion Hunter System ===== */
+const HUNTER_URL = "/.netlify/functions/hunter";
+const STATS_H = { FOR: "Force", VIT: "Vitalité", AGI: "Agilité", INT: "Intelligence", PER: "Perception" };
+const KIND_LABEL = { daily: "Quotidienne", weekly: "Hebdo", custom: "Perso" };
+const DIFF_LABEL = { easy: "Facile", medium: "Intermédiaire", hard: "Difficile", extreme: "Extrême" };
+const DIFF_XP = { easy: 15, medium: 30, hard: 60, extreme: 120 };
+let hunterEtat = null;
+
+function esc(t) { const d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._h); toast._h = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+function changerOnglet(nom) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === nom));
+  ["lumen", "quetes", "hunter"].forEach(n => { document.getElementById("view-" + n).hidden = n !== nom; });
+  if (nom === "hunter" && hunterEtat) dessinerRadar(hunterEtat);
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => changerOnglet(t.dataset.tab)));
+
+function renderHunter(h) {
+  hunterEtat = h;
+  document.getElementById("rang-line").textContent = `Rang ${h.rang} · ${h.titre}`;
+  document.getElementById("h-points").textContent = h.statPoints;
+
+  const ql = document.getElementById("quest-list");
+  if (!h.quests.length) {
+    ql.innerHTML = '<div class="empty">Aucune quête pour le moment. Ajoutes-en une pour lancer ta progression.</div>';
+  } else {
+    const triees = [...h.quests].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+    ql.innerHTML = triees.map(q => `
+      <div class="panel quest-card">
+        <div class="q-check ${q.done ? "done" : ""}" data-id="${q.id}">${q.done ? "✓" : ""}</div>
+        <div class="q-body">
+          <div class="q-title ${q.done ? "done" : ""}">${esc(q.title)}</div>
+          ${q.detail ? `<div class="q-detail">${esc(q.detail)}</div>` : ""}
+          <div class="q-meta">${KIND_LABEL[q.kind]} · ${DIFF_LABEL[q.difficulty]} · +${DIFF_XP[q.difficulty]} XP</div>
+        </div>
+        <div class="q-del" data-del="${q.id}">×</div>
+      </div>`).join("");
+  }
+
+  document.getElementById("stat-list").innerHTML = Object.keys(STATS_H).map(k => `
+    <div class="stat-row"><div class="nom">${STATS_H[k]}</div>
+      <div class="barre"><div style="width:${Math.min(100, h.stats[k])}%"></div></div>
+      <div class="val">${h.stats[k]}</div>
+      <div class="plus ${h.statPoints > 0 ? "" : "off"}" data-stat="${k}">+</div></div>`).join("");
+
+  document.getElementById("skill-list").innerHTML = h.competences.map(s => `
+    <div class="coll ${s.debloque ? "on" : ""}"><div class="ic">${s.debloque ? "✦" : "?"}</div>
+      <div><strong>${s.debloque ? s.name : "Verrouillée"}</strong><span>${s.debloque ? s.desc : "Niveau " + s.level + " requis."}</span></div></div>`).join("");
+  document.getElementById("ach-list").innerHTML = h.succes.map(a => `
+    <div class="coll ${a.debloque ? "on" : ""}"><div class="ic">${a.debloque ? a.icon : "?"}</div>
+      <div><strong>${a.debloque ? a.name : "???"}</strong><span>${a.desc}</span></div></div>`).join("");
+  document.getElementById("journal").innerHTML = h.history.length
+    ? h.history.slice(0, 10).map(x => `<div class="journal-item"><time>${x.time}</time><span>${esc(x.text)}</span></div>`).join("")
+    : '<div class="empty">Le journal est vide.</div>';
+
+  if (!document.getElementById("view-hunter").hidden) dessinerRadar(h);
+}
+
+function dessinerRadar(h) {
+  const c = document.getElementById("radar"), ctx = c.getContext("2d");
+  const W = c.width, H = c.height, cx = W / 2, cy = H / 2 + 6, R = Math.min(W, H) / 2 - 44;
+  const cles = Object.keys(STATS_H), n = cles.length, max = 40;
+  ctx.clearRect(0, 0, W, H);
+  ctx.lineWidth = 1; ctx.strokeStyle = "rgba(212,175,90,0.18)";
+  for (let ring = 1; ring <= 4; ring++) {
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = -Math.PI / 2 + (i % n) * 2 * Math.PI / n, r = R * ring / 4;
+      i ? ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)) : ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  cles.forEach((k, i) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n, r = R * Math.min(1, h.stats[k] / max);
+    i ? ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a)) : ctx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+  });
+  ctx.closePath(); ctx.fillStyle = "rgba(212,175,90,0.25)"; ctx.fill();
+  ctx.strokeStyle = "#D4AF5A"; ctx.lineWidth = 2; ctx.stroke();
+  ctx.font = "600 14px 'Space Grotesk', sans-serif"; ctx.fillStyle = "#8A7B5C"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  cles.forEach((k, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; ctx.fillText(k, cx + (R + 26) * Math.cos(a), cy + (R + 26) * Math.sin(a)); });
+}
+
+async function appelHunter(params) {
+  try {
+    const res = await fetch(`${HUNTER_URL}?${new URLSearchParams(params)}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Serveur : ${res.status}`);
+    const data = await res.json();
+    renderHunter(data.hunter);
+    if (data.message) toast(data.message);
+    // le niveau/XP affichés sur l'écran Lumen suivent Hunter
+    document.getElementById("niveau-badge").textContent = `Niv. ${data.hunter.niveau}`;
+    document.getElementById("xp-fill").style.width = `${Math.min(100, (data.hunter.xp / data.hunter.xpMax) * 100)}%`;
+    document.getElementById("xp-label").textContent = `XP ${data.hunter.xp} / ${data.hunter.xpMax}`;
+  } catch (e) { toast("Erreur : " + e.message); }
+}
+
+document.getElementById("quest-list").addEventListener("click", e => {
+  const chk = e.target.closest(".q-check"), del = e.target.closest(".q-del");
+  if (chk) appelHunter({ action: "basculerQuete", id: chk.dataset.id });
+  else if (del) appelHunter({ action: "supprimerQuete", id: del.dataset.del });
+});
+document.getElementById("stat-list").addEventListener("click", e => {
+  const p = e.target.closest(".plus");
+  if (p && !p.classList.contains("off")) appelHunter({ action: "allouer", stat: p.dataset.stat });
+});
+const formQ = document.getElementById("quest-form");
+document.getElementById("btn-add-quete").addEventListener("click", () => formQ.classList.toggle("show"));
+document.getElementById("q-annuler").addEventListener("click", () => formQ.classList.remove("show"));
+document.getElementById("q-valider").addEventListener("click", () => {
+  const titre = document.getElementById("q-titre").value.trim();
+  if (!titre) return;
+  appelHunter({ action: "ajouterQuete", titre, detail: document.getElementById("q-detail").value.trim(),
+    kind: document.getElementById("q-kind").value, difficulty: document.getElementById("q-diff").value });
+  document.getElementById("q-titre").value = ""; document.getElementById("q-detail").value = "";
+  formQ.classList.remove("show");
+});
+
+appelerAction("statut");
+</script>
+
+</body>
+</html>
